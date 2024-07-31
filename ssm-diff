@@ -6,16 +6,57 @@ import argparse
 import os
 
 
+def backup(args):
+    args.filename = set_backup_filename(args)
+    save_remote_state_to_local(args)
+    upload_to_s3(args)
+
+
 def init(args):
+    save_remote_state_to_local(args)
+
+
+def pull(args):
+    r, l = RemoteState(args.profile), LocalState(args.filename)
+    diff = helpers.FlatDictDiffer(r.get(paths=args.path), l.get(paths=args.path))
+    state = get_pull_state(diff, args.force)
+    l.save(helpers.unflatten(state))
+
+
+def apply(args):
+    r, _, diff = plan(args)
+    print("\nApplying changes...")
+    try:
+        r.apply(diff)
+        print("Done.")
+    except Exception as e:
+        print("Failed to apply changes to remote:", e)
+
+
+def plan(args):
+    r, l = RemoteState(args.profile), LocalState(args.filename)
+    diff = helpers.FlatDictDiffer(r.get(paths=args.path), l.get(paths=args.path))
+    print_plan_result(diff)
+    return r, l, diff
+
+
+def set_backup_filename(args):
+    return helpers.timestamp() + '.yml' if args.filename == 'parameters.yml' else args.filename
+
+
+def save_remote_state_to_local(args):
     r, l = RemoteState(args.profile), LocalState(args.filename)
     l.save(r.get(flat=False, paths=args.path))
 
 
-def pull(args):
-    dictfilter = lambda x, y: dict([ (i,x[i]) for i in x if i in set(y) ])
-    r, l = RemoteState(args.profile), LocalState(args.filename)
-    diff = helpers.FlatDictDiffer(r.get(paths=args.path), l.get(paths=args.path))
-    if args.force:
+def upload_to_s3(args):
+    s3 = S3State(args.bucket, args.key, args.profile, args.filename)
+    s3.save()
+
+
+def get_pull_state(diff, force):
+    dictfilter = lambda x, y: dict([(i, x[i]) for i in x if i in set(y)])
+    if force:
         ref_set = diff.changed().union(diff.removed()).union(diff.unchanged())
         target_set = diff.added()
     else:
@@ -23,30 +64,14 @@ def pull(args):
         target_set = diff.added().union(diff.changed())
     state = dictfilter(diff.ref, ref_set)
     state.update(dictfilter(diff.target, target_set))
-    l.save(helpers.unflatten(state))
+    return state
 
 
-def apply(args):
-    r, _, diff = plan(args)
-
-    print("\nApplying changes...")
-    try:
-        r.apply(diff)
-    except Exception as e:
-        print("Failed to apply changes to remote:", e)
-    print("Done.")
-
-
-def plan(args):
-    r, l = RemoteState(args.profile), LocalState(args.filename)
-    diff = helpers.FlatDictDiffer(r.get(paths=args.path), l.get(paths=args.path))
-
+def print_plan_result(diff):
     if diff.differ:
         diff.print_state()
     else:
         print("Remote state is up to date.")
-
-    return r, l, diff
 
 
 if __name__ == "__main__":
@@ -56,6 +81,11 @@ if __name__ == "__main__":
     parser.add_argument('--profile', help='AWS profile name', action='store', dest='profile')
     subparsers = parser.add_subparsers(dest='func', help='commands')
     subparsers.required = True
+
+    parser_backup = subparsers.add_parser('backup', help='backup remote state to s3 bucket')
+    parser_backup.set_defaults(func=backup)
+    parser_backup.add_argument('--bucket', help='s3 bucket name', action='store', dest='bucket')
+    parser_backup.add_argument('--key', help='s3 key name', action='store', dest='key')
 
     parser_plan = subparsers.add_parser('plan', help='display changes between local and remote states')
     parser_plan.set_defaults(func=plan)

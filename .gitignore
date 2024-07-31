@@ -1,5 +1,7 @@
-*.yml
+!github/
 *.pyc
 build
 dist
 *.egg-info
+.idea/
+./*.yml
