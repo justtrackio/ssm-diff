@@ -25,20 +25,17 @@ jobs:
         run: |
           sudo apt-get install -y binutils
 
-      #- name: Update package version (Linux)
-      #  if: matrix.os == 'ubuntu-latest'
-      #  run: |
-      #    sed -i -e 's|'version=.*'|'version="${{ github.ref_name }}",'|g' ./setup.py
-      #    sed -i -e 's|'download_url=.*'|'download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",'|g' ./setup.py
+      - name: Update package version (MacOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          sed -i '' -e 's/version=.*,/version="${{ github.ref_name }}",/' \
+          -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' setup.py
 
-      # mac has BSD style sed command where you specify -i '' and not just -i
-      - name: Update package version
-        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
+      - name: Update package version (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sed -i -e 's/version=.*,/version="${{ github.ref_name }}",/' \
           -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' ./setup.py
-          #sed -i '' -e 's/version=.*,/version="${{ github.ref_name }}",/' \
-          #-e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' setup.py
 
       - name: Build with PyInstaller
         shell: bash
