@@ -52,12 +52,23 @@ jobs:
           mv ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip ../
           cd ..
 
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip
           asset_name: ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip
           asset_content_type: application/octet-stream
