@@ -1,0 +1,118 @@
+name: Build and Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y binutils
+
+      - name: Update package version (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sed -i 's/version=.*/version="${{ github.ref_name }}",/g' setup.py
+          sed -i 's/download_url=.*/download_url="https:\/\/github.com\/${{ github.repository }}\/archive\/${{ github.ref_name }}.tar.gz",/g' setup.py
+
+      # mac has BSD style sed command where you specify -i '' and not just -i
+      - name: Update package version (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          sed -i '' s/version=.*/version="${{ github.ref_name }}",/g' setup.py
+          sed -i '' 's/download_url=.*/download_url="https:\/\/github.com\/${{ github.repository }}\/archive\/${{ github.ref_name }}.tar.gz",/g' setup.py
+
+      - name: Build with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller ssm-diff --onefile
+          ls dist
+
+      - name: Zip the application (Unix)
+        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
+        run: |
+          cd dist
+          zip -r ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip ssm-diff
+          mv ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip ../
+          cd ..
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip
+          asset_name: ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip
+          asset_content_type: application/octet-stream
+
+      - name: Upload build as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ssm-diff-${{ matrix.os }}-${{ github.ref_name }}
+          path: ./ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip
+
+  check-latest:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      IS_LATEST: ${{ steps.check-latest.outputs.release == github.ref_name }}
+    steps:
+      - id: check-latest
+        uses: pozetroninc/github-action-get-latest-release@v0.7.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          excludes: prerelease, draft
+
+  # Define MacOS hash job
+  mac-hash:
+    needs: check-latest
+    runs-on: ubuntu-latest
+    if: needs.check-latest.outputs.IS_LATEST
+    outputs:
+      MAC_BUILD_HASH: ${{ steps.calc-hash.outputs.MAC_BUILD_HASH }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Download MacOS artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ssm-diff-macos-latest-${{ github.ref_name }}
+      - name: Calculate hash
+        id: calc-hash
+        run: echo "::set-output name=MAC_BUILD_HASH::$(sha256sum ssm-diff-macos-latest-${{ github.ref_name }}.zip | awk '{print $1}')"
+
+  # Define Linux hash job
+  linux-hash:
+    needs: check-latest
+    runs-on: ubuntu-latest
+    if: needs.check-latest.outputs.IS_LATEST
+    outputs:
+      LINUX_BUILD_HASH: ${{ steps.calc-hash.outputs.LINUX_BUILD_HASH }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ssm-diff-ubuntu-latest-${{ github.ref_name }}
+      - name: Calculate hash
+        id: calc-hash
+        run: echo "::set-output name=LINUX_BUILD_HASH::$(sha256sum ssm-diff-ubuntu-latest-${{ github.ref_name }}.zip | awk '{print $1}')"

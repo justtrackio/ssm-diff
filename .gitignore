@@ -4,4 +4,6 @@ build
 dist
 *.egg-info
 .idea/
-./*.yml
+venv/
+states/__pycache__/
+
