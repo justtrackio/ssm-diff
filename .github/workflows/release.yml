@@ -35,12 +35,15 @@ jobs:
       - name: Update package version
         if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
         run: |
-          sed -i '' -e 's/version=.*,/version="${{ github.ref_name }}",/' \
-          -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' setup.py
+          sed -i -e 's/version=.*,/version="${{ github.ref_name }}",/' \
+          -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' ./setup.py
+          #sed -i '' -e 's/version=.*,/version="${{ github.ref_name }}",/' \
+          #-e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' setup.py
 
       - name: Build with PyInstaller
         shell: bash
         run: |
+          pip install -U pyinstaller
           pyinstaller ssm-diff --onefile
           ls dist
 
