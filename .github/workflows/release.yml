@@ -40,6 +40,7 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
+          pip install -r requirements.txt
           pip install -U pyinstaller
           pyinstaller ssm-diff --onefile
           ls dist
