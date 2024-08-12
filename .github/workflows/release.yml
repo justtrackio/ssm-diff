@@ -1,8 +1,8 @@
 name: Build and Release
 
 on:
-  push:
-    tags: ["v*.*.*"]
+  release:
+    types: [created]
 
 jobs:
   build:
@@ -51,18 +51,6 @@ jobs:
           zip -r ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip ssm-diff
           mv ssm-diff-${{ matrix.os }}-${{ github.ref_name }}.zip ../
           cd ..
-
-      - name: Create Release
-        if: always()
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1.0.2
