@@ -6,10 +6,9 @@ WORKDIR /ssm-diff
 
 COPY . .
 
-ENV PYI_STATIC_ZLIB=1
 RUN pip install -r requirements.txt pyinstaller staticx && \
   pyinstaller --clean -y --onefile ssm-diff && \
-    staticx /ssm-diff/dist/ssm-diff /ssm-diff-static
+  staticx /ssm-diff/dist/ssm-diff /ssm-diff-static
 
 FROM gcr.io/distroless/static-debian12:latest
 
