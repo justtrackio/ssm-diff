@@ -4,6 +4,7 @@ from states import *
 import states.helpers as helpers
 import argparse
 import os
+from version import __version__
 
 
 def backup(args):
@@ -76,6 +77,7 @@ def print_plan_result(diff):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + __version__)
     parser.add_argument('-f', help='local state yml file', action='store', dest='filename', default='parameters.yml')
     parser.add_argument('--path', '-p', action='append', help='filter SSM path')
     parser.add_argument('--profile', help='AWS profile name', action='store', dest='profile')

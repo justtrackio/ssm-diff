@@ -2,6 +2,7 @@
 
 from os import path
 from setuptools import setup, find_packages
+from version import __version__
 
 
 def read_long_description():
@@ -12,7 +13,7 @@ def read_long_description():
 
 setup(
     name="ssm-diff",
-    version="v",
+    version=__version__,
     description="A tool to manage contents of AWS SSM Parameter Store",
     long_description=read_long_description(),
     long_description_content_type="text/markdown",
