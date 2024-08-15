@@ -35,12 +35,14 @@ jobs:
         run: |
           sed -i '' -e 's/version=.*,/version="${{ github.ref_name }}",/' \
           -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' setup.py
+          sed -i '' -e 's/__version__ = .*/__version__ = "${{ github.ref_name }}"/' version.py
 
       - name: Update package version (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sed -i -e 's/version=.*,/version="${{ github.ref_name }}",/' \
           -e 's|download_url=.*|download_url="https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz",|' ./setup.py
+          sed -i -e 's/__version__ = .*/__version__ = "${{ github.ref_name }}"/' version.py
 
       - name: Build with PyInstaller
         shell: bash
