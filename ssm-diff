@@ -9,7 +9,11 @@ from version import __version__
 
 def backup(args):
     args.filename = set_backup_filename(args)
-    save_remote_state_to_local(args)
+    if args.state:
+        # state already exists, no need to pull from remote
+        args.filename = args.state
+    else:
+        save_remote_state_to_local(args)
     upload_to_s3(args)
 
 
@@ -88,6 +92,8 @@ if __name__ == "__main__":
     parser_backup.set_defaults(func=backup)
     parser_backup.add_argument('--bucket', help='s3 bucket name', action='store', dest='bucket')
     parser_backup.add_argument('--key', help='s3 key name', action='store', dest='key')
+    parser_backup.add_argument('--local-state', help='for the pre-existing local state yml file', action='store',
+                               dest='state')
 
     parser_plan = subparsers.add_parser('plan', help='display changes between local and remote states')
     parser_plan.set_defaults(func=plan)
