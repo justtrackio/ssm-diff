@@ -13,3 +13,5 @@ RUN pip install -r requirements.txt pyinstaller && \
 FROM public.ecr.aws/docker/library/alpine:3.20
 
 COPY --from=builder /ssm-diff/dist/ssm-diff /usr/local/bin/ssm-diff
+
+ENTRYPOINT ["ssm-diff"]
