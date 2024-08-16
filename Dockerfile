@@ -6,8 +6,7 @@ WORKDIR /ssm-diff
 
 COPY . .
 
-RUN pip install -r requirements.txt && \
-  pip install pyinstaller && \
+RUN pip install -r requirements.txt pyinstaller && \
   pyinstaller --clean -y --onefile ssm-diff
 
 
