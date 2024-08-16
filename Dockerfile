@@ -1,17 +1,16 @@
-FROM public.ecr.aws/docker/library/python:3.11.9-bookworm AS builder
+FROM public.ecr.aws/docker/library/python:3.11.9-alpine AS builder
 
-RUN apt update && apt install -y gcc binutils libc-dev scons patchelf
+RUN apk add --update gcc musl-dev binutils libc-dev
 
 WORKDIR /ssm-diff
 
 COPY . .
 
-RUN pip install -r requirements.txt pyinstaller staticx && \
-  pyinstaller --clean -y --onefile ssm-diff && \
-  staticx /ssm-diff/dist/ssm-diff /ssm-diff-static
+RUN pip install -r requirements.txt && \
+  pip install pyinstaller && \
+  pyinstaller --clean -y --onefile ssm-diff
 
-FROM gcr.io/distroless/static-debian12:latest
 
-COPY --from=builder /ssm-diff-static /ssm-diff
+FROM public.ecr.aws/docker/library/alpine:3.20
 
-ENTRYPOINT ["/ssm-diff"]
+COPY --from=builder /ssm-diff/dist/ssm-diff /usr/local/bin/ssm-diff
